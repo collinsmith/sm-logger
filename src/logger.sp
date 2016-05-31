@@ -112,6 +112,77 @@ void validateLogger(Logger logger) {
   }
 }
 
+bool parseFormat(const char[] c, int &offset,
+    char &specifier, bool &lJustify, int &width, int &precision) {
+  specifier = ' ';
+  lJustify = false;
+  width = -1;
+  precision = -1;
+  if (c[offset] != '%') {
+    return false;
+  }
+
+  int temp;
+  offset++;
+  switch (c[offset]) {
+    case '\0':
+      return false;
+    case '-': {
+      lJustify = true;
+      offset++;
+      if (c[offset] == '\0') {
+        return false;
+      }
+    }
+    case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9': {
+      if (0 <= (temp = c[offset] - '0') && temp <= 9) {
+        width = temp;
+        offset++;
+        while (0 <= (temp = c[offset] - '0') && temp <= 9) {
+          width *= 10;
+          width += temp;
+          offset++;
+        }
+      } else {
+      }
+
+      if (c[offset] == '\0') {
+        return false;
+      }
+    }
+    case '.': {
+      if (c[offset] == '.') {
+        offset++;
+        if (0 <= (temp = c[offset] - '0') && temp <= 9) {
+          precision = temp;
+          offset++;
+          while (0 <= (temp = c[offset] - '0') && temp <= 9) {
+            precision *= 10;
+            precision += temp;
+            offset++;
+          }
+        } else {
+          return false;
+        }
+      } else {
+      }
+
+      if (c[offset] == '\0') {
+        return false;
+      }
+    }
+    case 'd', 'f', 'i', 'l', 'm', 'n', 'p', 's', 't', 'v', '%':
+      switch (c[offset]) {
+        case 'd', 'f', 'i', 'l', 'm', 'n', 'p', 's', 't', 'v', '%': {
+          specifier = c[offset];
+          return true;
+        }
+      }
+  }
+
+  return false;
+}
+
 /**
  * native Severity GetVerbosity();
  */
