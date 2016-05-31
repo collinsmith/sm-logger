@@ -183,6 +183,29 @@ bool parseFormat(const char[] c, int &offset,
   return false;
 }
 
+bool isValidFormat(const char[] str, int &percentLoc, int &errorLoc) {
+  percentLoc = -1;
+  errorLoc = -1;
+
+  char specifier;
+  bool lJustify;
+  int width, precision;
+  int offset = 0;
+  for (; str[offset] != '\0'; offset++) {
+    if (str[offset] != '%') {
+      continue;
+    }
+
+    percentLoc = offset;
+    if (!parseFormat(str, offset, specifier, lJustify, width, precision)) {
+      errorLoc = offset;
+      return false;
+    }
+  }
+
+  return true;
+}
+
 /**
  * native Severity GetVerbosity();
  */
