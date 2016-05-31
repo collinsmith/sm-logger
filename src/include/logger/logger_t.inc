@@ -27,6 +27,8 @@ methodmap Logger < Handle {
       const char[] timeFormat = "%H:%M:%S",
       const char[] pathFormat = "");
 
+  public native bool IsLogging();
+
   public native Severity GetVerbosity();
   public native void SetVerbosity(Severity verbosity);
 

@@ -42,6 +42,8 @@ void CreateNatives() {
 
   CreateNative("Logger.Logger", Native_CreateLogger);
 
+  CreateNative("Logger.IsLogging", Native_IsLogging);
+
   CreateNative("Logger.GetVerbosity", Native_GetVerbosity);
   CreateNative("Logger.SetVerbosity", Native_SetVerbosity);
 
@@ -189,6 +191,24 @@ public int Native_CreateLogger(Handle plugin, int numParams) {
 }
 
 /**
+ * public native bool IsLogging();
+ */
+public int Native_IsLogging(Handle plugin, int numParams) {
+  Params_ValidateEqual(1, numParams);
+  validateState();
+  Logger logger = GetNativeCell(1);
+  validateLogger(logger);
+
+  if (g_globalVerbosity > Severity_None) {
+    return true;
+  }
+
+  loadLogger(logger);
+  Severity verbosity = data[LoggerData_verbosity].Value;
+  return verbosity > Severity_None;
+}
+
+/**
  * public native Severity GetVerbosity();
  */
 public int Native_GetVerbosity(Handle plugin, int numParams) {
@@ -198,7 +218,7 @@ public int Native_GetVerbosity(Handle plugin, int numParams) {
   validateLogger(logger);
 
   loadLogger(logger);
-  return view_as<int>(data[LoggerData_verbosity]);
+  return data[LoggerData_verbosity].Value;
 }
 
 /**
