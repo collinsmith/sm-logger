@@ -26,6 +26,7 @@ enum LoggerData {
 };
 
 static data[LoggerData];
+static Logger g_cachedLogger = null;
 static ArrayList g_aLoggers = null;
 
 public APLRes AskPluginLoad2(Handle h, bool isLate, char[] err, int errLen) {
@@ -46,6 +47,19 @@ public void OnPluginEnd() {
     //...
 }
 
+void loadLogger(Logger logger) {
+  if (g_cachedLogger == logger) {
+    return;
+  }
+
+  g_cachedLogger = logger;
+  g_aLoggers.GetArray(loggerToIndex(g_cachedLogger), data[0]);
+}
+
+void commitLogger() {
+  g_aLoggers.SetArray(loggerToIndex(g_cachedLogger), data[0]);
+}
+
 bool isValidLogger(any i) {
   return 1 <= i && i <= g_aLoggers.Length;
 }
@@ -53,6 +67,10 @@ bool isValidLogger(any i) {
 int loggerToIndex(Logger logger) {
   assert isValidLogger(logger);
   return view_as<int>(logger) - 1;
+}
+
+Logger indexToLogger(int index) {
+  return view_as<Logger>(index + 1);
 }
 
 /*
@@ -106,8 +124,8 @@ public int Native_CreateLogger(Handle plugin, int numParams) {
   data[LoggerData_pathFormat][len] = EOS;
 
   int id = g_aLoggers.PushArray(data[0]);
-  Logger logger = view_as<Logger>(id+1);
-  return view_as<int>(logger);
+  g_cachedLogger = indexToLogger(id);
+  return view_as<int>(g_cachedLogger);
 }
 
 public int Native_GetVerbosity(Handle plugin, int numParams) {
@@ -123,7 +141,7 @@ public int Native_GetVerbosity(Handle plugin, int numParams) {
         "Illegal argument exception: Passed argument is not a valid logger");
   }
 
-  g_aLoggers.GetArray(loggerToIndex(logger), data[0]);
+  loadLogger(logger);
   return view_as<int>(data[LoggerData_verbosity]);
 }
 
@@ -141,7 +159,7 @@ public int Native_SetVerbosity(Handle plugin, int numParams) {
   }
 
   Severity verbosity = GetNativeCell(2);
-  g_aLoggers.GetArray(loggerToIndex(logger), data[0]);
+  loadLogger(logger);
   data[LoggerData_verbosity] = verbosity;
-  g_aLoggers.SetArray(loggerToIndex(logger), data[0]);
+  commitLogger();
 }
