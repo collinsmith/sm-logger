@@ -37,8 +37,26 @@ public APLRes AskPluginLoad2(Handle h, bool isLate, char[] err, int errLen) {
 
 void CreateNatives() {
   CreateNative("Logger.Logger", Native_CreateLogger);
+
   CreateNative("Logger.GetVerbosity", Native_GetVerbosity);
   CreateNative("Logger.SetVerbosity", Native_SetVerbosity);
+
+  CreateNative("Logger.GetNameFormat", Native_GetNameFormat);
+  CreateNative("Logger.SetNameFormat", Native_SetNameFormat);
+
+  CreateNative("Logger.GetMessageFormat", Native_GetMessageFormat);
+  CreateNative("Logger.SetMessageFormat", Native_SetMessageFormat);
+
+  CreateNative("Logger.GetDateFormat", Native_GetDateFormat);
+  CreateNative("Logger.SetDateFormat", Native_SetDateFormat);
+
+  CreateNative("Logger.GetTimeFormat", Native_GetTimeFormat);
+  CreateNative("Logger.SetTimeFormat", Native_SetTimeFormat);
+
+  CreateNative("Logger.GetPathFormat", Native_GetPathFormat);
+  CreateNative("Logger.SetPathFormat", Native_SetPathFormat);
+
+  CreateNative("Logger.Log", Native_Log);
 }
 public void OnPluginStart() {
     //...
@@ -74,15 +92,29 @@ Logger indexToLogger(int index) {
   return view_as<Logger>(index + 1);
 }
 
-/*
-public native Logger(
-    const Severity verbosity = Severity_Warn,
-    const char[] nameFormat = "%p_%d",
-    const char[] msgFormat  = "[%5v] [%t] %n::%f - %s",
-    const char[] dateFormat = "%Y-%m-%d",
-    const char[] timeFormat = "%H:%M:%S",
-    const char[] pathFormat = "");
-*/
+void validateState() {
+  if (g_aLoggers == null) {
+    ThrowNativeError(SP_ERROR_NATIVE,
+        "Illegal state exception: No loggers have been registered yet");
+  }
+}
+
+void validateLogger(Logger logger) {
+  if (!isValidLogger(logger)) {
+    ThrowNativeError(SP_ERROR_NATIVE,
+        "Illegal argument exception: Passed argument is not a valid logger");
+  }
+}
+
+/**
+ * public native Logger(
+ *     const Severity verbosity = Severity_Warn,
+ *     const char[] nameFormat = "%p_%d",
+ *     const char[] msgFormat  = "[%5v] [%t] %n::%f - %s",
+ *     const char[] dateFormat = "%Y-%m-%d",
+ *     const char[] timeFormat = "%H:%M:%S",
+ *     const char[] pathFormat = "");
+ */
 public int Native_CreateLogger(Handle plugin, int numParams) {
   Params_ValidateEqual(6, numParams);
   Severity verbosity = GetNativeCell(1);
@@ -113,15 +145,20 @@ public int Native_CreateLogger(Handle plugin, int numParams) {
   }
 
   data[LoggerData_verbosity] = verbosity;
-  len = strcopy(data[LoggerData_nameFormat], sizeof data[LoggerData_nameFormat], nameFormat);
+  len = strcopy(data[LoggerData_nameFormat],
+      sizeof data[LoggerData_nameFormat] - 1, nameFormat);
   data[LoggerData_nameFormat][len] = EOS;
-  len = strcopy(data[LoggerData_msgFormat], sizeof data[LoggerData_msgFormat], msgFormat);
+  len = strcopy(data[LoggerData_msgFormat],
+      sizeof data[LoggerData_msgFormat] - 1, msgFormat);
   data[LoggerData_msgFormat][len] = EOS;
-  len = strcopy(data[LoggerData_dateFormat], sizeof data[LoggerData_dateFormat], dateFormat);
+  len = strcopy(data[LoggerData_dateFormat],
+      sizeof data[LoggerData_dateFormat] - 1, dateFormat);
   data[LoggerData_dateFormat][len] = EOS;
-  len = strcopy(data[LoggerData_timeFormat], sizeof data[LoggerData_timeFormat], timeFormat);
+  len = strcopy(data[LoggerData_timeFormat],
+      sizeof data[LoggerData_timeFormat] - 1, timeFormat);
   data[LoggerData_timeFormat][len] = EOS;
-  len = strcopy(data[LoggerData_pathFormat], sizeof data[LoggerData_pathFormat], pathFormat);
+  len = strcopy(data[LoggerData_pathFormat],
+      sizeof data[LoggerData_pathFormat] - 1, pathFormat);
   data[LoggerData_pathFormat][len] = EOS;
 
   int id = g_aLoggers.PushArray(data[0]);
@@ -129,38 +166,198 @@ public int Native_CreateLogger(Handle plugin, int numParams) {
   return view_as<int>(g_cachedLogger);
 }
 
+/**
+ * public native Severity GetVerbosity();
+ */
 public int Native_GetVerbosity(Handle plugin, int numParams) {
   Params_ValidateEqual(1, numParams);
-  if (g_aLoggers == null) {
-    ThrowNativeError(SP_ERROR_NATIVE,
-        "Illegal state exception: No loggers have been registered yet");
-  }
-
+  validateState();
   Logger logger = GetNativeCell(1);
-  if (!isValidLogger(logger)) {
-    ThrowNativeError(SP_ERROR_NATIVE,
-        "Illegal argument exception: Passed argument is not a valid logger");
-  }
+  validateLogger(logger);
 
   loadLogger(logger);
   return view_as<int>(data[LoggerData_verbosity]);
 }
 
+/**
+ * public native void SetVerbosity(Severity verbosity);
+ */
 public int Native_SetVerbosity(Handle plugin, int numParams) {
   Params_ValidateEqual(2, numParams);
-  if (g_aLoggers == null) {
-    ThrowNativeError(SP_ERROR_NATIVE,
-        "Illegal state exception: No loggers have been registered yet");
-  }
-
+  validateState();
   Logger logger = GetNativeCell(1);
-  if (!isValidLogger(logger)) {
-    ThrowNativeError(SP_ERROR_NATIVE,
-        "Illegal argument exception: Passed argument is not a valid logger");
-  }
+  validateLogger(logger);
 
   Severity verbosity = GetNativeCell(2);
   loadLogger(logger);
   data[LoggerData_verbosity] = verbosity;
   commitLogger();
+}
+
+/**
+ * public native void GetNameFormat(char[] dst, int len);
+ */
+public int Native_GetNameFormat(Handle plugin, int numParams) {
+  Params_ValidateEqual(3, numParams);
+  validateState();
+  Logger logger = GetNativeCell(1);
+  validateLogger(logger);
+
+  loadLogger(logger);
+  int bytes;
+  int len = GetNativeCell(3);
+  SetNativeString(2, data[LoggerData_nameFormat], len, .bytes = bytes);
+  return bytes;
+}
+
+/**
+ * public native void SetNameFormat(const char[] nameFormat);
+ */
+public int Native_SetNameFormat(Handle plugin, int numParams) {
+  Params_ValidateEqual(2, numParams);
+  validateState();
+  Logger logger = GetNativeCell(1);
+  validateLogger(logger);
+
+  loadLogger(logger);
+  GetNativeString(2, data[LoggerData_nameFormat],
+      sizeof data[LoggerData_nameFormat] - 1);
+  commitLogger();
+}
+
+/**
+ * public native void GetMessageFormat(char[] dst, int len);
+ */
+public int Native_GetMessageFormat(Handle plugin, int numParams) {
+  Params_ValidateEqual(3, numParams);
+  validateState();
+  Logger logger = GetNativeCell(1);
+  validateLogger(logger);
+
+  loadLogger(logger);
+  int bytes;
+  int len = GetNativeCell(3);
+  SetNativeString(2, data[LoggerData_msgFormat], len, .bytes = bytes);
+  return bytes;
+}
+
+/**
+ * public native void SetMessageFormat(const char[] msgFormat);
+ */
+public int Native_SetMessageFormat(Handle plugin, int numParams) {
+  Params_ValidateEqual(2, numParams);
+  validateState();
+  Logger logger = GetNativeCell(1);
+  validateLogger(logger);
+
+  loadLogger(logger);
+  GetNativeString(2, data[LoggerData_msgFormat],
+      sizeof data[LoggerData_msgFormat] - 1);
+  commitLogger();
+}
+
+/**
+ * public native void GetDateFormat(char[] dst, int len);
+ */
+public int Native_GetDateFormat(Handle plugin, int numParams) {
+  Params_ValidateEqual(3, numParams);
+  validateState();
+  Logger logger = GetNativeCell(1);
+  validateLogger(logger);
+
+  loadLogger(logger);
+  int bytes;
+  int len = GetNativeCell(3);
+  SetNativeString(2, data[LoggerData_dateFormat], len, .bytes = bytes);
+  return bytes;
+}
+
+/**
+ * public native void SetDateFormat(const char[] dateFormat);
+ */
+public int Native_SetDateFormat(Handle plugin, int numParams) {
+  Params_ValidateEqual(2, numParams);
+  validateState();
+  Logger logger = GetNativeCell(1);
+  validateLogger(logger);
+
+  loadLogger(logger);
+  GetNativeString(2, data[LoggerData_dateFormat],
+      sizeof data[LoggerData_dateFormat] - 1);
+  commitLogger();
+}
+
+/**
+ * public native void GetTimeFormat(char[] dst, int len);
+ */
+public int Native_GetTimeFormat(Handle plugin, int numParams) {
+  Params_ValidateEqual(3, numParams);
+  validateState();
+  Logger logger = GetNativeCell(1);
+  validateLogger(logger);
+
+  loadLogger(logger);
+  int bytes;
+  int len = GetNativeCell(3);
+  SetNativeString(2, data[LoggerData_timeFormat], len, .bytes = bytes);
+  return bytes;
+}
+
+/**
+ * public native void SetTimeFormat(const char[] timeFormat);
+ */
+public int Native_SetTimeFormat(Handle plugin, int numParams) {
+  Params_ValidateEqual(2, numParams);
+  validateState();
+  Logger logger = GetNativeCell(1);
+  validateLogger(logger);
+
+  loadLogger(logger);
+  GetNativeString(2, data[LoggerData_timeFormat],
+      sizeof data[LoggerData_timeFormat] - 1);
+  commitLogger();
+}
+
+/**
+ * public native void GetPathFormat(char[] dst, int len);
+ */
+public int Native_GetPathFormat(Handle plugin, int numParams) {
+  Params_ValidateEqual(3, numParams);
+  validateState();
+  Logger logger = GetNativeCell(1);
+  validateLogger(logger);
+
+  loadLogger(logger);
+  int bytes;
+  int len = GetNativeCell(3);
+  SetNativeString(2, data[LoggerData_pathFormat], len, .bytes = bytes);
+  return bytes;
+}
+
+/**
+ * public native void SetPathFormat(const char[] pathFormat);
+ */
+public int Native_SetPathFormat(Handle plugin, int numParams) {
+  Params_ValidateEqual(2, numParams);
+  validateState();
+  Logger logger = GetNativeCell(1);
+  validateLogger(logger);
+
+  loadLogger(logger);
+  GetNativeString(2, data[LoggerData_pathFormat],
+      sizeof data[LoggerData_pathFormat] - 1);
+  commitLogger();
+}
+
+/**
+ * public native void Log(const char[] format, any ...);
+ */
+public int Native_Log(Handle plugin, int numParams) {
+  Params_ValidateGreaterEqual(2, numParams);
+  validateState();
+  Logger logger = GetNativeCell(1);
+  validateLogger(logger);
+
+  loadLogger(logger);
+  //...
 }
