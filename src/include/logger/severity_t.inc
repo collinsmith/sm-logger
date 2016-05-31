@@ -3,15 +3,7 @@
 #endif
 #define _severity_t_included
 
-/*methodmap Severity {
-  
-  public native void GetName(char[] dst, int len);
-
-  property int Value {
-    public native get();
-  }
-
-}*/
+#include <string>
 
 enum Severity {
   /**
@@ -65,4 +57,26 @@ enum Severity {
    *       important messages log
    */
   Severity_Highest = Severity_Error
-}
+};
+
+methodmap Severity {
+
+  property int Value {
+    public get() {
+      return view_as<int>(this);
+    }
+  }
+  
+  public void GetName(char[] dst, int len) {
+    switch (this.Value) {
+      case Severity_Invalid: strcopy(dst, len, "INVALID");
+      case Severity_None:    strcopy(dst, len, "NONE");
+      case Severity_Debug:   strcopy(dst, len, "DEBUG");
+      case Severity_Info:    strcopy(dst, len, "INFO");
+      case Severity_Warn:    strcopy(dst, len, "WARN");
+      case Severity_Error:   strcopy(dst, len, "ERROR");
+      default:               IntToString(this.Value, dst, len);
+    }
+  }
+
+};

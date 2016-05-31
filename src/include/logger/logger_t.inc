@@ -15,7 +15,7 @@ enum Logger {
   No_Logger = 0,
   Invalid_Logger = No_Logger
 
-}
+};
 
 methodmap Logger < Handle {
   
@@ -47,4 +47,4 @@ methodmap Logger < Handle {
 
   public native void Log(const char[] format, any ...);
   
-}
+};
