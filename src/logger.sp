@@ -128,23 +128,16 @@ bool parseFormat(const char[] c, int &offset,
   int temp;
   offset++;
   switch (c[offset]) {
-    case EOS: return false;
+    case EOS:
+      return false;
     case '-':
-      if (!gotoLJustify(c, offset, specifier, lJustify, width, precision, temp)) {
-        return false;
-      }
+      return gotoLJustify(c, offset, specifier, lJustify, width, precision, temp);
     case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
-      if (!gotoWidth(c, offset, specifier, lJustify, width, precision, temp)) {
-        return false;
-      }
+      return gotoWidth(c, offset, specifier, lJustify, width, precision, temp);
     case '.':
-      if (!gotoPrecision(c, offset, specifier, lJustify, width, precision, temp)) {
-        return false;
-      }
+      return gotoPrecision(c, offset, specifier, lJustify, width, precision, temp);
     case 'd', 'f', 'i', 'l', 'm', 'n', 'p', 's', 't', 'v', '%':
-      if (gotoSpecifier(c, offset, specifier, lJustify, width, precision, temp)) {
-        return true;
-      }
+      return gotoSpecifier(c, offset, specifier, lJustify, width, precision, temp);
   }
 
   return false;
@@ -293,7 +286,7 @@ int parseLoggerString(
 
     bool valid = parseFormat(fmt, pFmt, specifier, lJustify, width, precision);
     if (!valid) {
-      PrintToServer("fmt=\"%s\"@%d was flagged invalid!", fmt, pFmt);
+      PrintToServer("Invalid format: \"%s\" -> \"%s\"", fmt, fmt[pFmt]);
       continue;
     }
 
@@ -609,13 +602,11 @@ public int Native_SetPathFormat(Handle plugin, int numParams) {
  */
 public int Native_Log(Handle plugin, int numParams) {
   if (g_globalVerbosity < Severity_None) {
-    PrintToServer("terminating: logging disabled globally");
     return false;
   }
 
   Severity severity = GetNativeCell(2);
   if (severity < g_globalVerbosity) {
-    PrintToServer("terminating: log message severity lower than global");
     return false;
   }
 
@@ -625,7 +616,6 @@ public int Native_Log(Handle plugin, int numParams) {
   validateLogger(logger);
   loadLogger(logger);
   if (severity < data[LoggerData_verbosity]) {
-    PrintToServer("terminating: log message severity less than logger");
     return false;
   }
 
@@ -634,30 +624,24 @@ public int Native_Log(Handle plugin, int numParams) {
   char date[16];
   int dateLen = FormatTime(date, sizeof date - 1,
       data[LoggerData_dateFormat], curTime);
-  PrintToServer("date=\"%s\"", date);
 
   char time[16];
   int timeLen = FormatTime(time, sizeof time - 1,
       data[LoggerData_timeFormat], curTime);
-  PrintToServer("time=\"%s\"", time);
 
   static char message[1024];
   int messageLen;
   FormatNativeString(0, 3, 4, sizeof message - 1, messageLen, message);
-  PrintToServer("message=\"%s\"", message);
   
   char severityStr[16];
   int severityLen = data[LoggerData_verbosity]
       .GetName(severityStr, sizeof severityStr - 1);
-  PrintToServer("severity=\"%s\"", severityStr);
 
   char pluginFile[64];
   GetPluginFilename(plugin, pluginFile, sizeof pluginFile - 1);
-  PrintToServer("plugin=\"%s\"", pluginFile);
 
   char mapname[32];
   GetCurrentMap(mapname, sizeof mapname - 1);
-  PrintToServer("mapname=\"%s\"", mapname);
 
   static char formattedMessage[1024];
   int formattedMessageLen = parseLoggerString(
@@ -671,7 +655,6 @@ public int Native_Log(Handle plugin, int numParams) {
       mapname);
   //formattedMessage[formattedMessageLen++] = '\n'; // change sizeof above to -2
   formattedMessage[formattedMessageLen++] = EOS;
-  PrintToServer("formattedMessage=\"%s\"", formattedMessage);
 
   static char formattedFileName[PLATFORM_MAX_PATH];
   int formattedFileNameLen = parseLoggerString(
@@ -683,7 +666,6 @@ public int Native_Log(Handle plugin, int numParams) {
       severityStr,
       pluginFile,
       mapname);
-  PrintToServer("formattedFileName=\"%s\"", formattedFileName);
 
   static char formattedFilePath[PLATFORM_MAX_PATH];
   int formattedFilePathLen = parseLoggerString(
@@ -695,7 +677,6 @@ public int Native_Log(Handle plugin, int numParams) {
       severityStr,
       pluginFile,
       mapname);
-  PrintToServer("formattedFilePath=\"%s\"", formattedFilePath);
 
   static char builtPath[PLATFORM_MAX_PATH];
   if (Strings_IsEmpty(data[LoggerData_pathFormat])) {
@@ -706,7 +687,6 @@ public int Native_Log(Handle plugin, int numParams) {
         "logs/%s/%s.log", formattedFilePath, formattedFileName);
   }
 
-  PrintToServer("builtPath=\"%s\"", builtPath);
   Paths_FixPathAndMkdir(builtPath, sizeof builtPath);
   LogToFileEx(builtPath, formattedMessage);
   return true;
