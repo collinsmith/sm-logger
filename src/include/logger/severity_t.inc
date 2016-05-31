@@ -66,6 +66,36 @@ methodmap Severity {
       return view_as<int>(this);
     }
   }
+
+  /*property Severity None {
+    public get() {
+      return Severity_None;
+    }
+  }
+
+  property Severity Debug {
+    public get() {
+      return Severity_Debug;
+    }
+  }
+
+  property Severity Info {
+    public get() {
+      return Severity_Info;
+    }
+  }
+
+  property Severity Warn {
+    public get() {
+      return Severity_Warn;
+    }
+  }
+
+  property Severity Error {
+    public get() {
+      return Severity_Error;
+    }
+  }*/
   
   public void GetName(char[] dst, int len) {
     switch (this.Value) {

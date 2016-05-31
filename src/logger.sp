@@ -1,6 +1,9 @@
 #include <sourcemod>
 
+#include "include/util/math.inc"
 #include "include/util/params.inc"
+#include "include/util/paths.inc"
+#include "include/util/strings.inc"
 
 #include "include/logger/logger_t.inc"
 #include "include/logger/severity_t.inc"
@@ -113,7 +116,7 @@ void validateLogger(Logger logger) {
 }
 
 bool parseFormat(const char[] c, int &offset,
-    char &specifier, bool &lJustify, int &width, int &precision) {
+    int &specifier, bool &lJustify, int &width, int &precision) {
   specifier = ' ';
   lJustify = false;
   width = -1;
@@ -125,59 +128,91 @@ bool parseFormat(const char[] c, int &offset,
   int temp;
   offset++;
   switch (c[offset]) {
-    case '\0':
-      return false;
-    case '-': {
-      lJustify = true;
-      offset++;
-      if (c[offset] == '\0') {
+    case EOS: return false;
+    case '-':
+      if (!gotoLJustify(c, offset, specifier, lJustify, width, precision, temp)) {
         return false;
       }
-    }
-    case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9': {
-      if (0 <= (temp = c[offset] - '0') && temp <= 9) {
-        width = temp;
-        offset++;
-        while (0 <= (temp = c[offset] - '0') && temp <= 9) {
-          width *= 10;
-          width += temp;
-          offset++;
-        }
-      } else {
-      }
-
-      if (c[offset] == '\0') {
+    case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
+      if (!gotoWidth(c, offset, specifier, lJustify, width, precision, temp)) {
         return false;
       }
-    }
-    case '.': {
-      if (c[offset] == '.') {
-        offset++;
-        if (0 <= (temp = c[offset] - '0') && temp <= 9) {
-          precision = temp;
-          offset++;
-          while (0 <= (temp = c[offset] - '0') && temp <= 9) {
-            precision *= 10;
-            precision += temp;
-            offset++;
-          }
-        } else {
-          return false;
-        }
-      } else {
-      }
-
-      if (c[offset] == '\0') {
+    case '.':
+      if (!gotoPrecision(c, offset, specifier, lJustify, width, precision, temp)) {
         return false;
       }
-    }
     case 'd', 'f', 'i', 'l', 'm', 'n', 'p', 's', 't', 'v', '%':
-      switch (c[offset]) {
-        case 'd', 'f', 'i', 'l', 'm', 'n', 'p', 's', 't', 'v', '%': {
-          specifier = c[offset];
-          return true;
-        }
+      if (gotoSpecifier(c, offset, specifier, lJustify, width, precision, temp)) {
+        return true;
       }
+  }
+
+  return false;
+}
+
+bool gotoLJustify(const char[] c, int &offset,
+    int &specifier, bool &lJustify, int &width, int &precision, int &temp) {
+  lJustify = true;
+  offset++;
+  if (c[offset] == EOS) {
+    return false;
+  }
+
+  return gotoWidth(c, offset, specifier, lJustify, width, precision, temp);
+}
+
+bool gotoWidth(const char[] c, int &offset,
+    int &specifier, bool &lJustify, int &width, int &precision, int &temp) {
+  if (0 <= (temp = c[offset] - '0') && temp <= 9) {
+    width = temp;
+    offset++;
+    while (0 <= (temp = c[offset] - '0') && temp <= 9) {
+      width *= 10;
+      width += temp;
+      offset++;
+    }
+  } else {
+  }
+
+  if (c[offset] == EOS) {
+    return false;
+  }
+
+  return gotoPrecision(c, offset, specifier, lJustify, width, precision, temp);
+}
+
+bool gotoPrecision(const char[] c, int &offset,
+    int &specifier, bool &lJustify, int &width, int &precision, int &temp) {
+  if (c[offset] == '.') {
+    offset++;
+    if (0 <= (temp = c[offset] - '0') && temp <= 9) {
+      precision = temp;
+      offset++;
+      while (0 <= (temp = c[offset] - '0') && temp <= 9) {
+        precision *= 10;
+        precision += temp;
+        offset++;
+      }
+    } else {
+      return false;
+    }
+  } else {
+  }
+
+  if (c[offset] == EOS) {
+    return false;
+  }
+
+  return gotoSpecifier(c, offset, specifier, lJustify, width, precision, temp);
+}
+
+bool gotoSpecifier(const char[] c, int &offset,
+    int &specifier, bool &lJustify, int &width, int &precision, int &temp) {
+  switch (c[offset]) {
+    case 'd', 'f', 'i', 'l', 'm', 'n', 'p', 's', 't', 'v', '%': {
+      specifier = c[offset];
+      return true;
+    }
   }
 
   return false;
@@ -191,7 +226,7 @@ bool isValidFormat(const char[] str, int &percentLoc, int &errorLoc) {
   bool lJustify;
   int width, precision;
   int offset = 0;
-  for (; str[offset] != '\0'; offset++) {
+  for (; str[offset] != EOS; offset++) {
     if (str[offset] != '%') {
       continue;
     }
@@ -204,6 +239,90 @@ bool isValidFormat(const char[] str, int &percentLoc, int &errorLoc) {
   }
 
   return true;
+}
+
+int strncpys(char[] dst, const char[] src, int len) {
+  return strcopy(dst, len, src);
+}
+
+int strncpyc(char[] dst, int src, int len) {
+  if (len > 0) {
+    dst[0] = src;
+    return 0;
+  }
+
+  return 1;
+}
+
+void pad(int len, int &offset, char[] dst, const int dstLen) {
+	for (; len > 0; len--, offset++) {
+		strncpyc(dst[offset], ' ', dstLen - offset);
+	}
+}
+
+void shift(char[] str, int len, int right) {
+	if (right <= 0) {
+		return;
+	}
+
+	for (; len >= 0; len--) {
+		str[len + right] = str[len];
+	}
+}
+
+int parseLoggerString(
+    const char[] fmt,
+	char[] buffer, int bufferLen,
+	const char[] date,
+	const char[] message,
+	const char[] time,
+	const char[] severity,
+	const char[] plugin,
+	const char[] mapname) {
+  int offs = 0;
+  int specifier = ' ';
+  bool lJustify = false;
+  int len, width = -1, precision = -1;
+  int pFmt = 0;
+  for (; fmt[pFmt] != EOS; pFmt++) {
+    if (fmt[pFmt] != '%') {
+      strncpyc(buffer[offs], fmt[pFmt], bufferLen - offs);
+      offs++;
+      continue;
+    }
+
+    bool valid = parseFormat(fmt, pFmt, specifier, lJustify, width, precision);
+    if (!valid) {
+      PrintToServer("fmt=\"%s\"@%d was flagged invalid!", fmt, pFmt);
+      continue;
+    }
+
+    switch (specifier) {
+      case 'd': len = strncpys(buffer[offs], date, precision == -1 ? bufferLen - offs : Math_Min(bufferLen - offs, precision));
+      case 'f': len = strncpys(buffer[offs], "null", precision == -1 ? bufferLen - offs : Math_Min(bufferLen - offs, precision));
+      case 'i': len = strncpys(buffer[offs], "null", precision == -1 ? bufferLen - offs : Math_Min(bufferLen - offs, precision));
+      case 'l': len = strncpys(buffer[offs], "null", precision == -1 ? bufferLen - offs : Math_Min(bufferLen - offs, precision));
+      case 'm': len = strncpys(buffer[offs], mapname, precision == -1 ? bufferLen - offs : Math_Min(bufferLen - offs, precision));
+      case 'n': len = strncpys(buffer[offs], "null", precision == -1 ? bufferLen - offs : Math_Min(bufferLen - offs, precision));
+      case 'p': len = strncpys(buffer[offs], plugin, precision == -1 ? bufferLen - offs : Math_Min(bufferLen - offs, precision));
+      case 's': len = strncpys(buffer[offs], message, precision == -1 ? bufferLen - offs : Math_Min(bufferLen - offs, precision));
+      case 't': len = strncpys(buffer[offs], time, precision == -1 ? bufferLen - offs : Math_Min(bufferLen - offs, precision));
+      case 'v': len = strncpys(buffer[offs], severity, precision == -1 ? bufferLen - offs : Math_Min(bufferLen - offs, precision));
+      case '%': len = strncpyc(buffer[offs], '%', precision == -1 ? bufferLen - offs : Math_Min(bufferLen - offs, precision));
+    }
+
+    if (lJustify) {
+      offs += len;
+      pad(width - len, offs, buffer, bufferLen);
+    } else {
+      shift(buffer[offs], len, width - len);
+      pad(width - len, offs, buffer, bufferLen);
+      offs += len;
+    }
+  }
+
+  strncpyc(buffer[offs], EOS, bufferLen - offs);
+  return offs;
 }
 
 /**
@@ -486,14 +605,109 @@ public int Native_SetPathFormat(Handle plugin, int numParams) {
 }
 
 /**
- * public native void Log(const char[] format, any ...);
+ * public native void Log(Severity severity, const char[] format, any ...);
  */
 public int Native_Log(Handle plugin, int numParams) {
+  if (g_globalVerbosity < Severity_None) {
+    PrintToServer("terminating: logging disabled globally");
+    return false;
+  }
+
+  Severity severity = GetNativeCell(2);
+  if (severity < g_globalVerbosity) {
+    PrintToServer("terminating: log message severity lower than global");
+    return false;
+  }
+
   Params_ValidateGreaterEqual(2, numParams);
   validateState();
   Logger logger = GetNativeCell(1);
   validateLogger(logger);
-
   loadLogger(logger);
-  //...
+  if (severity < data[LoggerData_verbosity]) {
+    PrintToServer("terminating: log message severity less than logger");
+    return false;
+  }
+
+  int curTime = GetTime();
+
+  char date[16];
+  int dateLen = FormatTime(date, sizeof date - 1,
+      data[LoggerData_dateFormat], curTime);
+  PrintToServer("date=\"%s\"", date);
+
+  char time[16];
+  int timeLen = FormatTime(time, sizeof time - 1,
+      data[LoggerData_timeFormat], curTime);
+  PrintToServer("time=\"%s\"", time);
+
+  static char message[1024];
+  int messageLen;
+  FormatNativeString(0, 3, 4, sizeof message - 1, messageLen, message);
+  PrintToServer("message=\"%s\"", message);
+  
+  char severityStr[16];
+  int severityLen = data[LoggerData_verbosity]
+      .GetName(severityStr, sizeof severityStr - 1);
+  PrintToServer("severity=\"%s\"", severityStr);
+
+  char pluginFile[64];
+  GetPluginFilename(plugin, pluginFile, sizeof pluginFile - 1);
+  PrintToServer("plugin=\"%s\"", pluginFile);
+
+  char mapname[32];
+  GetCurrentMap(mapname, sizeof mapname - 1);
+  PrintToServer("mapname=\"%s\"", mapname);
+
+  static char formattedMessage[1024];
+  int formattedMessageLen = parseLoggerString(
+      data[LoggerData_msgFormat],
+      formattedMessage, sizeof formattedMessage - 1,
+      date,
+      message,
+      time,
+      severityStr,
+      pluginFile,
+      mapname);
+  //formattedMessage[formattedMessageLen++] = '\n'; // change sizeof above to -2
+  formattedMessage[formattedMessageLen++] = EOS;
+  PrintToServer("formattedMessage=\"%s\"", formattedMessage);
+
+  static char formattedFileName[PLATFORM_MAX_PATH];
+  int formattedFileNameLen = parseLoggerString(
+      data[LoggerData_nameFormat],
+      formattedFileName, sizeof formattedFileName - 1,
+      date,
+      message,
+      time,
+      severityStr,
+      pluginFile,
+      mapname);
+  PrintToServer("formattedFileName=\"%s\"", formattedFileName);
+
+  static char formattedFilePath[PLATFORM_MAX_PATH];
+  int formattedFilePathLen = parseLoggerString(
+      data[LoggerData_pathFormat],
+      formattedFilePath, sizeof formattedFilePath - 1,
+      date,
+      message,
+      time,
+      severityStr,
+      pluginFile,
+      mapname);
+  PrintToServer("formattedFilePath=\"%s\"", formattedFilePath);
+
+  static char builtPath[PLATFORM_MAX_PATH];
+  if (Strings_IsEmpty(data[LoggerData_pathFormat])) {
+    BuildPath(Path_SM, builtPath, sizeof builtPath - 1,
+        "logs/%s.log", formattedFileName);
+  } else {
+    BuildPath(Path_SM, builtPath, sizeof builtPath - 1,
+        "logs/%s/%s.log", formattedFilePath, formattedFileName);
+  }
+
+  PrintToServer("builtPath=\"%s\"", builtPath);
+  Paths_FixPathAndMkdir(builtPath, sizeof builtPath);
+  LogToFileEx(builtPath, formattedMessage);
+  return true;
 }

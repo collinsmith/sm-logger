@@ -47,6 +47,6 @@ methodmap Logger < Handle {
   public native void GetPathFormat(char[] dst, int len);
   public native void SetPathFormat(const char[] pathFormat);
 
-  public native void Log(const char[] format, any ...);
+  public native void Log(Severity severity, const char[] format, any ...);
   
 };
