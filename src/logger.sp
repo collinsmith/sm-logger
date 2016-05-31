@@ -27,6 +27,7 @@ enum LoggerData {
 };
 
 static data[LoggerData];
+static Severity g_globalVerbosity;
 static Logger g_cachedLogger = null;
 static ArrayList g_aLoggers = null;
 
@@ -36,6 +37,9 @@ public APLRes AskPluginLoad2(Handle h, bool isLate, char[] err, int errLen) {
 }
 
 void CreateNatives() {
+  CreateNative("GetVerbosity", Native_GetGlobalVerbosity);
+  CreateNative("SetVerbosity", Native_SetGlobalVerbosity);
+
   CreateNative("Logger.Logger", Native_CreateLogger);
 
   CreateNative("Logger.GetVerbosity", Native_GetVerbosity);
@@ -104,6 +108,24 @@ void validateLogger(Logger logger) {
     ThrowNativeError(SP_ERROR_NATIVE,
         "Illegal argument exception: Passed argument is not a valid logger");
   }
+}
+
+/**
+ * native Severity GetVerbosity();
+ */
+public int Native_GetGlobalVerbosity(Handle plugin, int numParams) {
+  Params_ValidateEqual(0, numParams);
+  return g_globalVerbosity.Value;
+}
+
+/**
+ * native void SetVerbosity(Severity verbosity);
+ */
+public int Native_SetGlobalVerbosity(Handle plugin, int numParams) {
+  Params_ValidateEqual(1, numParams);
+
+  Severity verbosity = GetNativeCell(1);
+  g_globalVerbosity = verbosity;
 }
 
 /**
