@@ -34,7 +34,7 @@ public Action Command_TestAll(int args) {
 public Action Command_Test_Create(int args) {
     SetTestingContext();
 
-    Severity testVerbosity = view_as<Severity>(31);
+    Severity testVerbosity = 31;
     Logger logger = new Logger(testVerbosity);
     Severity verbosity = logger.GetVerbosity();
     AssertTrue("logger.GetVerbosity() == 31", verbosity == testVerbosity);
@@ -43,11 +43,11 @@ public Action Command_Test_Create(int args) {
 public Action Command_Test_SetVerbosity(int args) {
     SetTestingContext();
 
-    Severity testVerbosity = view_as<Severity>(31);
+    Severity testVerbosity = 31;
     Logger logger = new Logger(testVerbosity);
     Severity verbosity = logger.GetVerbosity();
     AssertTrue("logger.GetVerbosity() == 31", verbosity == testVerbosity);
-    testVerbosity = view_as<Severity>(33);
+    testVerbosity = 33;
     logger.SetVerbosity(testVerbosity);
     verbosity = logger.GetVerbosity();
     AssertTrue("logger.SetVerbosity(33)", verbosity == testVerbosity);

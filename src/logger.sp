@@ -5,6 +5,7 @@
 #include "include/logger/logger_t.inc"
 #include "include/logger/severity_t.inc"
 #include "include/logger/logger_const.inc"
+#include "include/logger/logger_operations.inc"
 
 public Plugin pluginInfo = {
     name = "logger",
