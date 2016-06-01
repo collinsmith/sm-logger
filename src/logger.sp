@@ -733,10 +733,6 @@ public int Native_Log(Handle plugin, int numParams) {
   }
 
   Paths_FixPathAndMkdir(builtPath, sizeof builtPath);
-
-
-  LogToFileEx(builtPath, formattedMessage);
-
   File logFile = OpenFile(builtPath, "a+");
   if (logFile == null) {
     ThrowError("[SM] Unexpected fatal logging error (couldn't open %s for a+).",
@@ -744,5 +740,7 @@ public int Native_Log(Handle plugin, int numParams) {
   }
 
   logFile.WriteLine(formattedMessage);
+  logFile.Close();
+  PrintToServer(formattedMessage);
   return true;
 }
