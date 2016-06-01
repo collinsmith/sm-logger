@@ -1,4 +1,5 @@
 #include <sourcemod>
+#include <files>
 
 #include "include/util/math.inc"
 #include "include/util/params.inc"
@@ -215,11 +216,12 @@ bool gotoSpecifier(const char[] c, int &offset,
   return false;
 }
 
+#pragma unused isValidFormat
 bool isValidFormat(const char[] str, int &percentLoc, int &errorLoc) {
   percentLoc = -1;
   errorLoc = -1;
 
-  char specifier;
+  int specifier;
   bool lJustify;
   int width, precision;
   int offset = 0;
@@ -677,7 +679,7 @@ public int Native_Log(Handle plugin, int numParams) {
   FormatNativeString(0, 3, 4, sizeof message - 1, messageLen, message);
   
   char severityStr[16];
-  int severityLen = severity.GetName(severityStr, sizeof severityStr - 1);
+  severity.GetName(severityStr, sizeof severityStr - 1);
 
   char pluginFile[64];
   GetPluginFilename(plugin, pluginFile, sizeof pluginFile - 1);
@@ -700,7 +702,7 @@ public int Native_Log(Handle plugin, int numParams) {
   formattedMessage[formattedMessageLen++] = EOS;
 
   static char formattedFileName[PLATFORM_MAX_PATH];
-  int formattedFileNameLen = parseLoggerString(
+  parseLoggerString(
       data[LoggerData_nameFormat],
       formattedFileName, sizeof formattedFileName - 1,
       date,
@@ -711,7 +713,7 @@ public int Native_Log(Handle plugin, int numParams) {
       mapname);
 
   static char formattedFilePath[PLATFORM_MAX_PATH];
-  int formattedFilePathLen = parseLoggerString(
+  parseLoggerString(
       data[LoggerData_pathFormat],
       formattedFilePath, sizeof formattedFilePath - 1,
       date,
@@ -731,6 +733,16 @@ public int Native_Log(Handle plugin, int numParams) {
   }
 
   Paths_FixPathAndMkdir(builtPath, sizeof builtPath);
+
+
   LogToFileEx(builtPath, formattedMessage);
+
+  File logFile = OpenFile(builtPath, "a+");
+  if (logFile == null) {
+    ThrowError("[SM] Unexpected fatal logging error (couldn't open %s for a+).",
+        builtPath);
+  }
+
+  logFile.WriteLine(formattedMessage);
   return true;
 }
