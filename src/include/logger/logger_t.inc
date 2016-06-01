@@ -21,11 +21,12 @@ methodmap Logger < Handle {
   
   public native Logger(
       const Severity verbosity = Severity_Warn,
-      const char[] nameFormat = "%p_%d",
-      const char[] msgFormat  = "[%5v] [%t] %n::%f - %s",
-      const char[] dateFormat = "%Y-%m-%d",
-      const char[] timeFormat = "%H:%M:%S",
-      const char[] pathFormat = "");
+      const char[] nameFormat  = "%p_%d",
+      const char[] msgFormat   = "[%5v] [%t] %n::%f - %s",
+      const char[] dateFormat  = "%Y-%m-%d",
+      const char[] timeFormat  = "%H:%M:%S",
+      const char[] pathFormat  = "",
+      const char[] traceFormat = "    at %n::%f : %l");
 
   public native bool IsLogging();
 
@@ -46,6 +47,9 @@ methodmap Logger < Handle {
 
   public native void GetPathFormat(char[] dst, int len);
   public native void SetPathFormat(const char[] pathFormat);
+
+  public native void GetTraceFormat(char[] dst, int len);
+  public native void SetTraceFormat(const char[] traceFormat);
 
   public native void Log(Severity severity, const char[] format, any ...);
   

@@ -25,7 +25,8 @@ enum LoggerData {
   String: LoggerData_msgFormat[64],
   String: LoggerData_dateFormat[32],
   String: LoggerData_timeFormat[32],
-  String: LoggerData_pathFormat[PLATFORM_MAX_PATH]
+  String: LoggerData_pathFormat[PLATFORM_MAX_PATH],
+  String: LoggerData_traceFormat[64],
 
 };
 
@@ -64,6 +65,9 @@ void CreateNatives() {
 
   CreateNative("Logger.GetPathFormat", Native_GetPathFormat);
   CreateNative("Logger.SetPathFormat", Native_SetPathFormat);
+
+  CreateNative("Logger.GetTraceFormat", Native_GetTraceFormat);
+  CreateNative("Logger.SetTraceFormat", Native_SetTraceFormat);
 
   CreateNative("Logger.Log", Native_Log);
 }
@@ -339,14 +343,15 @@ public int Native_SetGlobalVerbosity(Handle plugin, int numParams) {
 /**
  * public native Logger(
  *     const Severity verbosity = Severity_Warn,
- *     const char[] nameFormat = "%p_%d",
- *     const char[] msgFormat  = "[%5v] [%t] %n::%f - %s",
- *     const char[] dateFormat = "%Y-%m-%d",
- *     const char[] timeFormat = "%H:%M:%S",
- *     const char[] pathFormat = "");
+ *     const char[] nameFormat  = "%p_%d",
+ *     const char[] msgFormat   = "[%5v] [%t] %n::%f - %s",
+ *     const char[] dateFormat  = "%Y-%m-%d",
+ *     const char[] timeFormat  = "%H:%M:%S",
+ *     const char[] pathFormat  = "",
+ *     const char[] traceFormat = "    at %n::%f : %l");
  */
 public int Native_CreateLogger(Handle plugin, int numParams) {
-  Params_ValidateEqual(6, numParams);
+  Params_ValidateEqual(7, numParams);
   Severity verbosity = GetNativeCell(1);
 
   int len;
@@ -370,6 +375,10 @@ public int Native_CreateLogger(Handle plugin, int numParams) {
   char[] pathFormat = new char[len];
   GetNativeString(6, pathFormat, len+1);
 
+  GetNativeStringLength(7, len);
+  char[] traceFormat = new char[len];
+  GetNativeString(7, traceFormat, len+1);
+
   if (g_aLoggers == null) {
     g_aLoggers = new ArrayList(view_as<int>(LoggerData));
   }
@@ -390,6 +399,9 @@ public int Native_CreateLogger(Handle plugin, int numParams) {
   len = strcopy(data[LoggerData_pathFormat],
       sizeof data[LoggerData_pathFormat] - 1, pathFormat);
   data[LoggerData_pathFormat][len] = EOS;
+  len = strcopy(data[LoggerData_traceFormat],
+      sizeof data[LoggerData_traceFormat] - 1, traceFormat);
+  data[LoggerData_traceFormat][len] = EOS;
 
   int id = g_aLoggers.PushArray(data[0]);
   g_cachedLogger = indexToLogger(id);
@@ -594,6 +606,37 @@ public int Native_SetPathFormat(Handle plugin, int numParams) {
   loadLogger(logger);
   GetNativeString(2, data[LoggerData_pathFormat],
       sizeof data[LoggerData_pathFormat] - 1);
+  commitLogger();
+}
+
+/**
+ * public native void GetTraceFormat(char[] dst, int len);
+ */
+public int Native_GetTraceFormat(Handle plugin, int numParams) {
+  Params_ValidateEqual(3, numParams);
+  validateState();
+  Logger logger = GetNativeCell(1);
+  validateLogger(logger);
+
+  loadLogger(logger);
+  int bytes;
+  int len = GetNativeCell(3);
+  SetNativeString(2, data[LoggerData_traceFormat], len, .bytes = bytes);
+  return bytes;
+}
+
+/**
+ * public native void SetTraceFormat(const char[] traceFormat);
+ */
+public int Native_SetTraceFormat(Handle plugin, int numParams) {
+  Params_ValidateEqual(2, numParams);
+  validateState();
+  Logger logger = GetNativeCell(1);
+  validateLogger(logger);
+
+  loadLogger(logger);
+  GetNativeString(2, data[LoggerData_traceFormat],
+      sizeof data[LoggerData_traceFormat] - 1);
   commitLogger();
 }
 

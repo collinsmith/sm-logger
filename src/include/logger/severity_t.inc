@@ -67,7 +67,7 @@ methodmap Severity {
     }
   }
 
-  /*property Severity None {
+  /*property static Severity None {
     public get() {
       return Severity_None;
     }
