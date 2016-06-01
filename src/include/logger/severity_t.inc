@@ -97,16 +97,18 @@ methodmap Severity {
     }
   }*/
   
-  public void GetName(char[] dst, int len) {
+  public int GetName(char[] dst, int len) {
     switch (this.Value) {
-      case Severity_Invalid: strcopy(dst, len, "INVALID");
-      case Severity_None:    strcopy(dst, len, "NONE");
-      case Severity_Debug:   strcopy(dst, len, "DEBUG");
-      case Severity_Info:    strcopy(dst, len, "INFO");
-      case Severity_Warn:    strcopy(dst, len, "WARN");
-      case Severity_Error:   strcopy(dst, len, "ERROR");
-      default:               IntToString(this.Value, dst, len);
+      case Severity_Invalid: return strcopy(dst, len, "INVALID");
+      case Severity_None:    return strcopy(dst, len, "NONE");
+      case Severity_Debug:   return strcopy(dst, len, "DEBUG");
+      case Severity_Info:    return strcopy(dst, len, "INFO");
+      case Severity_Warn:    return strcopy(dst, len, "WARN");
+      case Severity_Error:   return strcopy(dst, len, "ERROR");
+      default:               return IntToString(this.Value, dst, len);
     }
+
+    return 0;
   }
 
 };

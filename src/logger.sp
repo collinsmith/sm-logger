@@ -665,11 +665,11 @@ public int Native_Log(Handle plugin, int numParams) {
   int curTime = GetTime();
 
   char date[16];
-  int dateLen = FormatTime(date, sizeof date - 1,
+  FormatTime(date, sizeof date - 1,
       data[LoggerData_dateFormat], curTime);
 
   char time[16];
-  int timeLen = FormatTime(time, sizeof time - 1,
+  FormatTime(time, sizeof time - 1,
       data[LoggerData_timeFormat], curTime);
 
   static char message[1024];
@@ -682,7 +682,8 @@ public int Native_Log(Handle plugin, int numParams) {
 
   char pluginFile[64];
   GetPluginFilename(plugin, pluginFile, sizeof pluginFile - 1);
-
+  ReplaceString(pluginFile, sizeof pluginFile - 1, ".smx", "", false);
+  
   char mapname[32];
   GetCurrentMap(mapname, sizeof mapname - 1);
 
