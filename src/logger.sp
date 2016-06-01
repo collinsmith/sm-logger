@@ -677,8 +677,7 @@ public int Native_Log(Handle plugin, int numParams) {
   FormatNativeString(0, 3, 4, sizeof message - 1, messageLen, message);
   
   char severityStr[16];
-  int severityLen = data[LoggerData_verbosity]
-      .GetName(severityStr, sizeof severityStr - 1);
+  int severityLen = severity.GetName(severityStr, sizeof severityStr - 1);
 
   char pluginFile[64];
   GetPluginFilename(plugin, pluginFile, sizeof pluginFile - 1);
