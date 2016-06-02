@@ -11,7 +11,7 @@
 #include "include/logger/logger_const.inc"
 #include "include/logger/logger_operations.inc"
 
-public Plugin pluginInfo = {
+public Plugin myinfo = {
     name = "logger",
     author = "Tirant",
     description = "Creates and handles loggers",
