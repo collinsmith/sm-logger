@@ -6,7 +6,7 @@
 #include "../include/logger.inc"
 
 public Plugin myinfo = {
-  name = "loggerTests",
+  name = "Tests for logger.sp",
   author = "Tirant",
   description = "Tests for logger.sp",
   version = "0.0.1",
